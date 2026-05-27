@@ -1,0 +1,30 @@
+# macOS
+.DS_Store
+._*
+
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+*.xcuserdatad/
+xcuserdata/
+*.swp
+*.swo
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+
+# Swift Package Manager
+.swiftpm/
+.build/
+Packages/
+Package.resolved
+
+# CocoaPods (if ever added)
+Pods/
+
+# Editor
+*~
+.idea/
+.vscode/

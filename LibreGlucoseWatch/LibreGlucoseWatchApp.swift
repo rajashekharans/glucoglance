@@ -1,17 +1,19 @@
-//
-//  LibreGlucoseWatchApp.swift
-//  LibreGlucoseWatch
-//
-//  Created by Rajashekharan Naidu on 27/5/2026.
-//
-
 import SwiftUI
 
 @main
 struct LibreGlucoseWatchApp: App {
+    @StateObject private var store = GlucoseStore.shared
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            Group {
+                if store.isSessionActive {
+                    DashboardView(store: store)
+                } else {
+                    LoginView(store: store)
+                }
+            }
+            .preferredColorScheme(.dark) // Lock to premium dark mode
         }
     }
 }
