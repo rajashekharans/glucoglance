@@ -27,7 +27,9 @@ class WatchAppDelegate: NSObject, WKApplicationDelegate {
                     do {
                         try await GlucoseStore.shared.refreshData()
                     } catch {
+                        #if DEBUG
                         print("WatchOS background refresh failed: \(error.localizedDescription)")
+                        #endif
                     }
                     
                     // Schedule next check
@@ -51,11 +53,13 @@ class WatchAppDelegate: NSObject, WKApplicationDelegate {
             withPreferredDate: nextRefreshDate,
             userInfo: nil
         ) { error in
+            #if DEBUG
             if let error = error {
                 print("Failed to schedule watchOS background refresh: \(error.localizedDescription)")
             } else {
                 print("watchOS background refresh scheduled successfully for \(nextRefreshDate).")
             }
+            #endif
         }
     }
 }

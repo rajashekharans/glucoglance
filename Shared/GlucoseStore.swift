@@ -294,7 +294,9 @@ public class GlucoseStore: NSObject, ObservableObject {
                     )
                 }
             } catch {
+                #if DEBUG
                 print("Failed to save to HealthKit: \(error.localizedDescription)")
+                #endif
             }
         }
     }
@@ -344,7 +346,9 @@ public class GlucoseStore: NSObject, ObservableObject {
         do {
             try WCSession.default.updateApplicationContext(context)
         } catch {
+            #if DEBUG
             print("Failed to update Apple Watch application context: \(error.localizedDescription)")
+            #endif
         }
     }
     #endif

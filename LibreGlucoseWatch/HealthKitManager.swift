@@ -67,7 +67,6 @@ public class HealthKitManager {
         
         // If a sample at this exact time exists, skip writing to avoid duplicates
         guard existingSamples.isEmpty else {
-            print("HealthKit: Reading at \(date) already exists. Skipping.")
             return
         }
         
@@ -92,7 +91,8 @@ public class HealthKitManager {
                 }
             }
         }
-        
-        print("HealthKit: Successfully wrote \(value) \(isMmolL ? "mmol/L" : "mg/dL") at \(date).")
+        // No diagnostic logging: the glucose value is PHI and must not be written
+        // to the system log, which gets captured by sysdiagnose and any device
+        // backup. If write succeeded, the absence of a thrown error is sufficient.
     }
 }

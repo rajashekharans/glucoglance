@@ -181,44 +181,28 @@ public actor LibreLinkUpClient {
     }
     
     private func processLoginPayload(_ response: LibreLinkUpLoginResponse) throws -> (token: String, regionBaseURL: String, userId: String) {
-        print("🔍 Processing login payload...")
-        
-        guard let data = response.data else {
-            print("❌ No data in response")
+        // No diagnostic logging here — the previous version printed the JWT token
+        // prefix, user id, and detected region, all of which are sensitive PHI/PII
+        // when surfaced via sysdiagnose or Console.app.
+
+        guard let data = response.data,
+              let ticket = data.authTicket,
+              let user = data.user else {
             throw LLUClientError.invalidResponse
         }
-        
-        print("✅ Data found")
-        
-        guard let ticket = data.authTicket else {
-            print("❌ No authTicket in data")
-            throw LLUClientError.invalidResponse
-        }
-        
-        print("✅ Auth ticket found: \(ticket.token.prefix(10))...")
-        
-        guard let user = data.user else {
-            print("❌ No user in data")
-            throw LLUClientError.invalidResponse
-        }
-        
-        print("✅ User found: \(user.id)")
-        
+
         self.token = ticket.token
         self.userId = user.id
         self.accountIdHash = sha256(user.id)
-        
-        // Dynamically detect region from the JWT token and update the activeBaseURL
+
+        // Dynamically detect region from the JWT token and update activeBaseURL
         if let detectedRegion = extractRegion(from: ticket.token) {
             let regionalURL = "https://api-\(detectedRegion).libreview.io"
             if self.activeBaseURL != regionalURL {
-                print("🌍 Automatically detected region from JWT: \(detectedRegion). Updating Base URL to: \(regionalURL)")
                 self.activeBaseURL = regionalURL
             }
         }
-        
-        print("🎉 Login complete! Token stored, returning to caller. Region Base URL: \(self.activeBaseURL)")
-        
+
         return (ticket.token, self.activeBaseURL, user.id)
     }
     
