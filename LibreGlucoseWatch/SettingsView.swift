@@ -46,7 +46,7 @@ struct SettingsView: View {
                         store.syncToWatch()
                         #endif
                     }) {
-                        Text("Force Force Sync Watch")
+                        Text("Force Sync Watch")
                             .fontWeight(.medium)
                             .foregroundColor(.green)
                     }
@@ -79,6 +79,36 @@ struct SettingsView: View {
                     .listRowBackground(Color.white.opacity(0.04))
                 }
                 
+                Section(
+                    header: HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.caption)
+                        Text("Important Notice")
+                    }
+                    .foregroundColor(.orange)
+                ) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("GlucoGlance is for personal use only.")
+                            .font(.system(.subheadline, design: .rounded))
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+
+                        Text("Not affiliated with Abbott Diabetes Care, FreeStyle Libre, or LibreView.")
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.7))
+
+                        Text("Not a registered medical device. Glucose values shown here are informational only and must not be used for clinical decisions, insulin dosing, or emergency response.")
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.7))
+
+                        Text("Always confirm readings in the official LibreLink app, or with a fingerstick measurement, before making any treatment decisions.")
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.7))
+                    }
+                    .padding(.vertical, 6)
+                    .listRowBackground(Color.white.opacity(0.04))
+                }
+
                 Section(header: Text("Information & Credits").foregroundColor(.green)) {
                     HStack {
                         Text("Version")
