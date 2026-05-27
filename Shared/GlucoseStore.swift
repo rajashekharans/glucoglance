@@ -42,9 +42,11 @@ public class GlucoseStore: NSObject, ObservableObject {
     private let useHealthKitKey = "llu_use_healthkit"
     private let cacheVersionKey = "llu_cache_version"
 
-    /// Bump this whenever the on-disk reading format / unit interpretation changes.
-    /// Old cached readings get wiped automatically when the user upgrades.
-    private let currentCacheVersion = 2
+    /// Bump this whenever the on-disk reading format / unit / timestamp interpretation
+    /// changes. Old cached readings get wiped automatically when the user upgrades.
+    /// v2: unit-flag rewrite (use country code, not connection.uom)
+    /// v3: timestamp parsing switched from local Timestamp to UTC FactoryTimestamp
+    private let currentCacheVersion = 3
 
     override private init() {
         super.init()

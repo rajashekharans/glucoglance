@@ -2,22 +2,32 @@ import Foundation
 
 // MARK: - Date Helper
 public struct LibreDateFormatter {
+    // All formatters use en_US_POSIX so AM/PM and month/day parsing are stable
+    // regardless of the user's device locale. The API speaks US English.
     private static let formatters: [DateFormatter] = {
+        let posix = Locale(identifier: "en_US_POSIX")
+        let utc = TimeZone(secondsFromGMT: 0)
+
         let f1 = DateFormatter()
         f1.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
-        f1.timeZone = TimeZone(secondsFromGMT: 0)
-        
+        f1.timeZone = utc
+        f1.locale = posix
+
         let f2 = DateFormatter()
         f2.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS"
-        f2.timeZone = TimeZone(secondsFromGMT: 0)
-        
+        f2.timeZone = utc
+        f2.locale = posix
+
         let f3 = DateFormatter()
         f3.dateFormat = "M/d/yyyy h:mm:ss a"
-        f3.timeZone = TimeZone(secondsFromGMT: 0)
-        
+        f3.timeZone = utc
+        f3.locale = posix
+
         let f4 = DateFormatter()
         f4.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
-        
+        f4.locale = posix
+        // f4 has 'Z' suffix that encodes its own offset, no static timeZone needed
+
         return [f1, f2, f3, f4]
     }()
     
@@ -81,18 +91,22 @@ public struct LLUConnection: Codable {
 public struct LLUMeasurement: Codable {
     public let value: Double             // In user's region display unit (mmol/L for non-US)
     public let valueInMgPerDl: Double    // Always mg/dL
-    public let timestamp: String
+    public let timestamp: String         // Local time string — ambiguous, do not use for math
+    public let factoryTimestamp: String  // Always UTC — use this for date math
     public let rawTrendArrow: Int
 
     enum CodingKeys: String, CodingKey {
         case value = "Value"
         case valueInMgPerDl = "ValueInMgPerDl"
         case timestamp = "Timestamp"
+        case factoryTimestamp = "FactoryTimestamp"
         case rawTrendArrow = "TrendArrow"
     }
 
+    /// Always parses FactoryTimestamp as UTC. `Timestamp` is local time on the
+    /// LibreLinkUp server's clock and can't be reliably parsed across timezones.
     public var date: Date? {
-        return LibreDateFormatter.parse(timestamp)
+        return LibreDateFormatter.parse(factoryTimestamp)
     }
 
     public var trendArrowEnum: TrendArrow {
@@ -112,11 +126,13 @@ public struct GraphDataPayload: Codable {
 }
 
 public struct LLUGraphPoint: Codable {
-    public let Value: Double            // In user's region display unit
-    public let ValueInMgPerDl: Double   // Always mg/dL
-    public let Timestamp: String
+    public let Value: Double             // In user's region display unit
+    public let ValueInMgPerDl: Double    // Always mg/dL
+    public let Timestamp: String         // Local time — do not use for math
+    public let FactoryTimestamp: String  // Always UTC
 
     public var date: Date? {
-        return LibreDateFormatter.parse(Timestamp)
+        // Use FactoryTimestamp (UTC) for reliable parsing across timezones.
+        return LibreDateFormatter.parse(FactoryTimestamp)
     }
 }
