@@ -52,7 +52,7 @@ struct DashboardView: View {
                     try? await store.refreshData()
                 }
             }
-            .navigationTitle("LibreGlucose")
+            .navigationTitle("GlucoGlance")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {

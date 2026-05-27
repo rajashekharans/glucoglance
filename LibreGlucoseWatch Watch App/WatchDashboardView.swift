@@ -191,7 +191,7 @@ struct WatchDashboardView: View {
                 .font(.system(size: 32))
                 .foregroundColor(.green)
             
-            Text("LibreGlucoseWatch")
+            Text("GlucoGlance")
                 .font(.system(.headline, design: .rounded))
                 .fontWeight(.bold)
             

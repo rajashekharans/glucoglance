@@ -14,7 +14,7 @@ struct GlucoseWidgetControl: ControlWidget {
             }
         }
         .displayName("Glucose")
-        .description("Open LibreGlucoseWatch.")
+        .description("Open GlucoGlance.")
     }
 }
 

@@ -194,7 +194,7 @@ struct GlucoseWidgetView: View {
             Text("Libre --")
         case .accessoryRectangular:
             VStack(alignment: .leading, spacing: 2) {
-                Text("LibreGlucose")
+                Text("GlucoGlance")
                     .font(.system(.caption, design: .rounded))
                     .fontWeight(.bold)
                 Text("No Sensor Data")

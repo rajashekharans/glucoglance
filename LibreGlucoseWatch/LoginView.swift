@@ -128,7 +128,7 @@ struct LoginView: View {
     private var loginCard: some View {
         VStack(spacing: 28) {
             VStack(spacing: 8) {
-                Text("LibreGlucoseWatch")
+                Text("GlucoGlance")
                     .font(.system(.title, design: .rounded))
                     .fontWeight(.black)
                     .foregroundStyle(

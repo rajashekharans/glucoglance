@@ -659,7 +659,7 @@
 				DEVELOPMENT_TEAM = RYBF9VNPZM;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = GlucoseWidget/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = GlucoseWidget;
+				INFOPLIST_KEY_CFBundleDisplayName = GlucoGlance;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -693,7 +693,7 @@
 				DEVELOPMENT_TEAM = RYBF9VNPZM;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = GlucoseWidget/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = GlucoseWidget;
+				INFOPLIST_KEY_CFBundleDisplayName = GlucoGlance;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -842,7 +842,7 @@
 				DEVELOPMENT_TEAM = RYBF9VNPZM;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = LibreGlucoseWatch;
+				INFOPLIST_KEY_CFBundleDisplayName = GlucoGlance;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.rajnaidu.LibreGlucoseWatch;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -876,7 +876,7 @@
 				DEVELOPMENT_TEAM = RYBF9VNPZM;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = LibreGlucoseWatch;
+				INFOPLIST_KEY_CFBundleDisplayName = GlucoGlance;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.rajnaidu.LibreGlucoseWatch;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -911,7 +911,7 @@
 				DEVELOPMENT_TEAM = RYBF9VNPZM;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = LibreGlucoseWatch;
+				INFOPLIST_KEY_CFBundleDisplayName = GlucoGlance;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "We read glucose data to calculate stats and trends.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "We write your FreeStyle Libre readings to Apple Health.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -949,7 +949,7 @@
 				DEVELOPMENT_TEAM = RYBF9VNPZM;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = LibreGlucoseWatch;
+				INFOPLIST_KEY_CFBundleDisplayName = GlucoGlance;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "We read glucose data to calculate stats and trends.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "We write your FreeStyle Libre readings to Apple Health.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
