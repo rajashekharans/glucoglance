@@ -35,18 +35,30 @@ public class GlucoseStore: NSObject, ObservableObject {
         return UserDefaults.standard
     }
     
-    private let credentialsKey = "llu_credentials"
-    private let sessionKey = "llu_session"
+    // MARK: - Storage keys
+
+    // UserDefaults — NON-sensitive data only
     private let readingsKey = "llu_readings"
     private let currentReadingKey = "llu_current_reading"
     private let useHealthKitKey = "llu_use_healthkit"
     private let cacheVersionKey = "llu_cache_version"
+    private let emailKey = "llu_email"   // Shown in Settings; not a secret on its own
+    private let regionKey = "llu_region" // Public LibreLinkUp regional endpoint URL
+
+    // Sensitive items live in Keychain — keys defined in KeychainStore.Keys
+
+    // Legacy UserDefaults keys, kept only for one-time migration to Keychain
+    private let legacyCredentialsKey = "llu_credentials"
+    private let legacySessionKey = "llu_session"
+
+    private let keychain = KeychainStore.shared
 
     /// Bump this whenever the on-disk reading format / unit / timestamp interpretation
     /// changes. Old cached readings get wiped automatically when the user upgrades.
     /// v2: unit-flag rewrite (use country code, not connection.uom)
     /// v3: timestamp parsing switched from local Timestamp to UTC FactoryTimestamp
-    private let currentCacheVersion = 3
+    /// v4: credentials + token migrated from UserDefaults to Keychain
+    private let currentCacheVersion = 4
 
     override private init() {
         super.init()
@@ -56,10 +68,38 @@ public class GlucoseStore: NSObject, ObservableObject {
         if storedVersion < currentCacheVersion {
             defaults.removeObject(forKey: currentReadingKey)
             defaults.removeObject(forKey: readingsKey)
+            migrateLegacyCredentialsToKeychain()
             defaults.set(currentCacheVersion, forKey: cacheVersionKey)
         }
         loadLocalData()
         setupWatchConnectivity()
+    }
+
+    /// One-time migration: copy LibreLinkUp password and bearer token out of
+    /// plaintext UserDefaults and into Keychain, then wipe them from UserDefaults.
+    /// Email and region URL stay in UserDefaults (neither is sensitive).
+    private func migrateLegacyCredentialsToKeychain() {
+        if let legacyCreds = defaults.dictionary(forKey: legacyCredentialsKey) as? [String: String] {
+            if let email = legacyCreds["email"] {
+                defaults.set(email, forKey: emailKey)
+            }
+            if let password = legacyCreds["password"], !password.isEmpty {
+                keychain.setString(password, forKey: KeychainStore.Keys.password)
+            }
+            defaults.removeObject(forKey: legacyCredentialsKey)
+        }
+        if let legacySession = defaults.dictionary(forKey: legacySessionKey) {
+            if let token = legacySession["token"] as? String, !token.isEmpty {
+                keychain.setString(token, forKey: KeychainStore.Keys.token)
+            }
+            if let region = legacySession["region"] as? String {
+                defaults.set(region, forKey: regionKey)
+            }
+            if let userId = legacySession["userId"] as? String, !userId.isEmpty {
+                keychain.setString(userId, forKey: KeychainStore.Keys.userId)
+            }
+            defaults.removeObject(forKey: legacySessionKey)
+        }
     }
     
     // MARK: - Local Data Management
@@ -77,11 +117,10 @@ public class GlucoseStore: NSObject, ObservableObject {
             self.readings = loadedReadings
         }
         
-        // Load session status
-        if let sessionData = defaults.dictionary(forKey: sessionKey),
-           let token = sessionData["token"] as? String,
-           let region = sessionData["region"] as? String,
-           let userId = sessionData["userId"] as? String {
+        // Load session status — token + userId from Keychain, region from UserDefaults
+        if let token = keychain.getString(forKey: KeychainStore.Keys.token),
+           let userId = keychain.getString(forKey: KeychainStore.Keys.userId),
+           let region = defaults.string(forKey: regionKey) {
             isSessionActive = true
             Task {
                 await client.restoreSession(token: token, regionBaseURL: region, userId: userId)
@@ -115,42 +154,56 @@ public class GlucoseStore: NSObject, ObservableObject {
     }
     
     // MARK: - Credentials & Auth
-    
+
+    /// Returns the email + password if both are available.
+    /// Email comes from UserDefaults (not sensitive); password comes from Keychain.
     public var savedCredentials: [String: String]? {
-        return defaults.dictionary(forKey: credentialsKey) as? [String: String]
+        guard let email = defaults.string(forKey: emailKey),
+              let password = keychain.getString(forKey: KeychainStore.Keys.password) else {
+            return nil
+        }
+        return ["email": email, "password": password]
     }
-    
+
     public func saveCredentials(email: String, password: String) {
-        defaults.set(["email": email, "password": password], forKey: credentialsKey)
+        defaults.set(email, forKey: emailKey)
+        keychain.setString(password, forKey: KeychainStore.Keys.password)
     }
-    
+
     public func clearSession() {
-        defaults.removeObject(forKey: sessionKey)
-        defaults.removeObject(forKey: credentialsKey)
+        // Wipe sensitive items from Keychain
+        keychain.deleteAll()
+
+        // Wipe non-sensitive items from UserDefaults
+        defaults.removeObject(forKey: emailKey)
+        defaults.removeObject(forKey: regionKey)
         defaults.removeObject(forKey: currentReadingKey)
         defaults.removeObject(forKey: readingsKey)
-        
+
         self.currentReading = nil
         self.readings = []
         self.isSessionActive = false
         self.lastUpdated = nil
-        
+
         WidgetCenter.shared.reloadAllTimelines()
     }
-    
+
     public func loginAndFetch(email: String, password: String) async throws {
         isLoading = true
         defer { isLoading = false }
-        
+
         do {
             let (token, regionURL, userId) = try await client.login(email: email, password: password)
-            
-            // Save session to UserDefaults
-            let sessionDict = ["token": token, "region": regionURL, "userId": userId]
-            defaults.set(sessionDict, forKey: sessionKey)
+
+            // Sensitive items → Keychain
+            keychain.setString(token, forKey: KeychainStore.Keys.token)
+            keychain.setString(userId, forKey: KeychainStore.Keys.userId)
+            // Non-sensitive items → UserDefaults
+            defaults.set(regionURL, forKey: regionKey)
+
             saveCredentials(email: email, password: password)
             isSessionActive = true
-            
+
             // Initial data fetch
             try await refreshData()
         } catch {
@@ -335,14 +388,11 @@ public class GlucoseStore: NSObject, ObservableObject {
             context["recentReadings"] = data
         }
         
-        // 3. Send Credentials so watch can pull independently if standalone
-        if let creds = savedCredentials {
-            context["credentials"] = creds
-        }
-        if let sessionDict = defaults.dictionary(forKey: sessionKey) {
-            context["session"] = sessionDict
-        }
-        
+        // Credentials and the bearer token are NO LONGER sent over WCSession.
+        // The watch reads them directly from the shared Keychain access group
+        // (keychain-access-groups: $(AppIdentifierPrefix)com.rajnaidu.LibreGlucoseWatch.shared).
+        // Removing them from the WC payload avoids plaintext PHI in the WC transport.
+
         do {
             try WCSession.default.updateApplicationContext(context)
         } catch {
@@ -418,24 +468,22 @@ extension GlucoseStore: WCSessionDelegate {
             didChange = true
         }
         
-        // 3. Process credentials (on watch, allows independent fetching)
+        // Credentials and the session token are NOT received via WCSession anymore.
+        // The watch reads them directly from the shared Keychain access group.
+        // If a fresh session was just established on iPhone, the watch picks it
+        // up on its next launch via loadLocalData().
         #if os(watchOS)
-        if let creds = data["credentials"] as? [String: String] {
-            defaults.set(creds, forKey: credentialsKey)
-        }
-        if let sessionDict = data["session"] as? [String: Any] {
-            defaults.set(sessionDict, forKey: sessionKey)
-            self.isSessionActive = true
-            if let token = sessionDict["token"] as? String,
-               let region = sessionDict["region"] as? String,
-               let userId = sessionDict["userId"] as? String {
-                Task {
-                    await client.restoreSession(token: token, regionBaseURL: region, userId: userId)
-                }
+        if !isSessionActive,
+           let token = keychain.getString(forKey: KeychainStore.Keys.token),
+           let userId = keychain.getString(forKey: KeychainStore.Keys.userId),
+           let region = defaults.string(forKey: regionKey) {
+            isSessionActive = true
+            Task {
+                await client.restoreSession(token: token, regionBaseURL: region, userId: userId)
             }
         }
         #endif
-        
+
         if didChange {
             lastUpdated = Date()
             defaults.set(lastUpdated, forKey: "llu_last_updated")

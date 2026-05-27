@@ -23,6 +23,8 @@
 		C35A89A52FC686E3009F456F /* Shared/LibreLinkUpClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C35A89A52FC686E3009F456D /* Shared/LibreLinkUpClient.swift */; };
 		C35A89A52FC686E3009F4572 /* Shared/GlucoseStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C35A89A52FC686E3009F4571 /* Shared/GlucoseStore.swift */; };
 		C35A89A52FC686E3009F4573 /* Shared/GlucoseStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C35A89A52FC686E3009F4571 /* Shared/GlucoseStore.swift */; };
+		C35A89A52FC686E3009F4582 /* Shared/KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C35A89A52FC686E3009F4581 /* Shared/KeychainStore.swift */; };
+		C35A89A52FC686E3009F4583 /* Shared/KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C35A89A52FC686E3009F4581 /* Shared/KeychainStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -111,6 +113,7 @@
 		C35A89A52FC686E3009F4569 /* Shared/Double+Glucose.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Shared/Double+Glucose.swift"; sourceTree = "<group>"; };
 		C35A89A52FC686E3009F456D /* Shared/LibreLinkUpClient.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Shared/LibreLinkUpClient.swift; sourceTree = "<group>"; };
 		C35A89A52FC686E3009F4571 /* Shared/GlucoseStore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Shared/GlucoseStore.swift; sourceTree = "<group>"; };
+		C35A89A52FC686E3009F4581 /* Shared/KeychainStore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Shared/KeychainStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -227,6 +230,7 @@
 				C35A89A52FC686E3009F4569 /* Shared/Double+Glucose.swift */,
 				C35A89A52FC686E3009F456D /* Shared/LibreLinkUpClient.swift */,
 				C35A89A52FC686E3009F4571 /* Shared/GlucoseStore.swift */,
+				C35A89A52FC686E3009F4581 /* Shared/KeychainStore.swift */,
 			);
 			name = "Recovered References";
 			sourceTree = "<group>";
@@ -569,6 +573,7 @@
 				C35A89A52FC686E3009F456A /* Shared/Double+Glucose.swift in Sources */,
 				C35A89A52FC686E3009F456E /* Shared/LibreLinkUpClient.swift in Sources */,
 				C35A89A52FC686E3009F4572 /* Shared/GlucoseStore.swift in Sources */,
+				C35A89A52FC686E3009F4582 /* Shared/KeychainStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -595,6 +600,7 @@
 				C35A89A52FC686E3009F456B /* Shared/Double+Glucose.swift in Sources */,
 				C35A89A52FC686E3009F456F /* Shared/LibreLinkUpClient.swift in Sources */,
 				C35A89A52FC686E3009F4573 /* Shared/GlucoseStore.swift in Sources */,
+				C35A89A52FC686E3009F4583 /* Shared/KeychainStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
