@@ -35,16 +35,10 @@ struct DashboardView: View {
                         // 3. 24-Hour Trend Chart
                         chartCardView
                         
-                        // Status Bar
-                        HStack {
-                            Circle()
-                                .fill(store.isLoading ? Color.green : Color.white.opacity(0.3))
-                                .frame(width: 8, height: 8)
-                            Text(store.syncMessage.isEmpty ? "Connected to LibreLinkUp" : store.syncMessage)
-                                .font(.system(.caption, design: .rounded))
-                                .foregroundColor(.white.opacity(0.4))
-                        }
-                        .padding(.vertical, 8)
+                        // Status Bar — turns red when last sync failed so the user
+                        // never silently looks at stale glucose data assuming it's current.
+                        statusBar
+                            .padding(.vertical, 8)
                     }
                     .padding()
                 }
@@ -92,6 +86,36 @@ struct DashboardView: View {
         }
     }
     
+    // MARK: - Status Bar (sync state)
+
+    /// Color-codes the sync status so a failed refresh is impossible to miss.
+    /// Red when lastSyncError is non-nil; subdued otherwise.
+    private var statusBar: some View {
+        let isError = store.lastSyncError != nil
+        let dotColor: Color = {
+            if isError { return .red }
+            if store.isLoading { return .green }
+            return .white.opacity(0.3)
+        }()
+        let message: String = {
+            if let err = store.lastSyncError { return err }
+            return store.syncMessage.isEmpty ? "Connected to LibreLinkUp" : store.syncMessage
+        }()
+        let textColor: Color = isError ? .red.opacity(0.9) : .white.opacity(0.4)
+
+        return HStack(spacing: 8) {
+            Circle()
+                .fill(dotColor)
+                .frame(width: 8, height: 8)
+            Text(message)
+                .font(.system(.caption, design: .rounded))
+                .foregroundColor(textColor)
+                .multilineTextAlignment(.leading)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 4)
+    }
+
     // MARK: - Current Glucose Circle Hero
     private func currentGlucoseHero(_ current: GlucoseReading) -> some View {
         let themeColor = Color.glucoseColor(for: current.valueInMgDl)

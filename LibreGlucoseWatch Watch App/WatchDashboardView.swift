@@ -49,12 +49,21 @@ struct WatchDashboardView: View {
                         .frame(height: 70)
                 }
                 
-                // 2. Refresh / Timestamp
+                // 2. Refresh / Timestamp — red text + dot if last sync failed
                 HStack(spacing: 4) {
-                    Text(timeString)
-                        .font(.system(.footnote, design: .rounded))
-                        .foregroundColor(.white.opacity(0.5))
-                    
+                    if store.lastSyncError != nil {
+                        Circle()
+                            .fill(Color.red)
+                            .frame(width: 6, height: 6)
+                        Text("Sync failed")
+                            .font(.system(.footnote, design: .rounded))
+                            .foregroundColor(.red.opacity(0.9))
+                    } else {
+                        Text(timeString)
+                            .font(.system(.footnote, design: .rounded))
+                            .foregroundColor(.white.opacity(0.5))
+                    }
+
                     Spacer()
                     
                     Button(action: {

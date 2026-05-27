@@ -18,6 +18,11 @@ public class GlucoseStore: NSObject, ObservableObject {
     @Published var lastUpdated: Date? = nil
     @Published var isSessionActive = false
     @Published var syncMessage: String = ""
+
+    /// Human-readable message describing the most recent sync failure, or nil
+    /// when the last sync succeeded. The dashboard surfaces this in red so the
+    /// user never silently looks at stale glucose data assuming it's current.
+    @Published var lastSyncError: String? = nil
     
     // LibreLinkUp client
     private let client = LibreLinkUpClient()
@@ -44,6 +49,7 @@ public class GlucoseStore: NSObject, ObservableObject {
     private let cacheVersionKey = "llu_cache_version"
     private let emailKey = "llu_email"   // Shown in Settings; not a secret on its own
     private let regionKey = "llu_region" // Public LibreLinkUp regional endpoint URL
+    private let tokenExpiresKey = "llu_token_expires" // Unix epoch seconds — token metadata, not secret
 
     // Sensitive items live in Keychain — keys defined in KeychainStore.Keys
 
@@ -177,6 +183,7 @@ public class GlucoseStore: NSObject, ObservableObject {
         // Wipe non-sensitive items from UserDefaults
         defaults.removeObject(forKey: emailKey)
         defaults.removeObject(forKey: regionKey)
+        defaults.removeObject(forKey: tokenExpiresKey)
         defaults.removeObject(forKey: currentReadingKey)
         defaults.removeObject(forKey: readingsKey)
 
@@ -184,6 +191,8 @@ public class GlucoseStore: NSObject, ObservableObject {
         self.readings = []
         self.isSessionActive = false
         self.lastUpdated = nil
+        self.lastSyncError = nil
+        self.syncMessage = ""
 
         WidgetCenter.shared.reloadAllTimelines()
     }
@@ -193,13 +202,14 @@ public class GlucoseStore: NSObject, ObservableObject {
         defer { isLoading = false }
 
         do {
-            let (token, regionURL, userId) = try await client.login(email: email, password: password)
+            let (token, regionURL, userId, expires) = try await client.login(email: email, password: password)
 
             // Sensitive items → Keychain
             keychain.setString(token, forKey: KeychainStore.Keys.token)
             keychain.setString(userId, forKey: KeychainStore.Keys.userId)
             // Non-sensitive items → UserDefaults
             defaults.set(regionURL, forKey: regionKey)
+            defaults.set(expires, forKey: tokenExpiresKey)
 
             saveCredentials(email: email, password: password)
             isSessionActive = true
@@ -211,6 +221,18 @@ public class GlucoseStore: NSObject, ObservableObject {
             throw error
         }
     }
+
+    /// Returns true if the stored bearer token expires within the next 60 seconds
+    /// (or has already expired). Used to trigger a proactive re-login before
+    /// hitting the API with a soon-to-be-invalid token.
+    /// Returns false if no expiry is stored — the caller will fall back to the
+    /// reactive 401 handling.
+    private var tokenIsExpiringSoon: Bool {
+        let expires = defaults.integer(forKey: tokenExpiresKey)
+        guard expires > 0 else { return false }
+        let now = Int(Date().timeIntervalSince1970)
+        return expires - now < 60
+    }
     
     // MARK: - Data Synchronization & Fetching
     
@@ -220,15 +242,38 @@ public class GlucoseStore: NSObject, ObservableObject {
             if let creds = savedCredentials,
                let email = creds["email"],
                let password = creds["password"] {
-                try await loginAndFetch(email: email, password: password)
-                return
+                do {
+                    try await loginAndFetch(email: email, password: password)
+                    return
+                } catch {
+                    lastSyncError = "Login failed: \(error.localizedDescription)"
+                    throw error
+                }
             }
+            lastSyncError = "Not signed in"
             throw LLUClientError.unauthenticated
         }
-        
+
+        // Proactive token refresh: if the bearer token is expiring soon (or has
+        // already expired), re-login BEFORE making the request. Avoids the
+        // 401 round-trip and ensures we never display stale data because of an
+        // expired token.
+        if tokenIsExpiringSoon,
+           let creds = savedCredentials,
+           let email = creds["email"],
+           let password = creds["password"] {
+            do {
+                try await loginAndFetch(email: email, password: password)
+                return  // loginAndFetch already refreshed glucose data
+            } catch {
+                lastSyncError = "Session expired and re-login failed: \(error.localizedDescription)"
+                throw error
+            }
+        }
+
         isLoading = true
         defer { isLoading = false }
-        
+
         do {
             let connections = try await client.fetchConnections()
             guard let activeConnection = connections.first else {
@@ -300,17 +345,26 @@ public class GlucoseStore: NSObject, ObservableObject {
             #endif
             
             syncMessage = "Last sync: \(DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .short))"
+            // Clear any prior error — this sync succeeded.
+            lastSyncError = nil
         } catch LLUClientError.unauthenticated {
-            // Token expired. Try auto-relogin.
+            // Token expired or server rejected it. Try auto-relogin.
             if let creds = savedCredentials,
                let email = creds["email"],
                let password = creds["password"] {
-                try await loginAndFetch(email: email, password: password)
+                do {
+                    try await loginAndFetch(email: email, password: password)
+                } catch {
+                    lastSyncError = "Session expired and re-login failed: \(error.localizedDescription)"
+                    throw error
+                }
             } else {
+                lastSyncError = "Session expired — please sign in again"
                 clearSession()
                 throw LLUClientError.unauthenticated
             }
         } catch {
+            lastSyncError = "Sync failed: \(error.localizedDescription)"
             throw error
         }
     }

@@ -112,7 +112,9 @@ public actor LibreLinkUpClient {
     }
     
     /// Authenticates with LibreLinkUp. Handles regional redirects automatically.
-    public func login(email: String, password: String) async throws -> (token: String, regionBaseURL: String, userId: String) {
+    /// `expires` is the Unix timestamp (seconds since epoch) at which the bearer
+    /// token stops being valid. LibreLinkUp typically issues tokens valid for ~180 days.
+    public func login(email: String, password: String) async throws -> (token: String, regionBaseURL: String, userId: String, expires: Int) {
         // Reset base URL to global for initial login attempt
         self.activeBaseURL = globalBaseURL
         self.token = nil
@@ -180,7 +182,7 @@ public actor LibreLinkUpClient {
         return region.lowercased()
     }
     
-    private func processLoginPayload(_ response: LibreLinkUpLoginResponse) throws -> (token: String, regionBaseURL: String, userId: String) {
+    private func processLoginPayload(_ response: LibreLinkUpLoginResponse) throws -> (token: String, regionBaseURL: String, userId: String, expires: Int) {
         // No diagnostic logging here — the previous version printed the JWT token
         // prefix, user id, and detected region, all of which are sensitive PHI/PII
         // when surfaced via sysdiagnose or Console.app.
@@ -203,7 +205,7 @@ public actor LibreLinkUpClient {
             }
         }
 
-        return (ticket.token, self.activeBaseURL, user.id)
+        return (ticket.token, self.activeBaseURL, user.id, ticket.expires)
     }
     
     /// Restores a previously saved authenticated session
