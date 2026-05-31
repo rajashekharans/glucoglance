@@ -442,10 +442,26 @@ public class GlucoseStore: NSObject, ObservableObject {
             context["recentReadings"] = data
         }
         
-        // Credentials and the bearer token are NO LONGER sent over WCSession.
-        // The watch reads them directly from the shared Keychain access group
-        // (keychain-access-groups: $(AppIdentifierPrefix)com.rajnaidu.LibreGlucoseWatch.shared).
-        // Removing them from the WC payload avoids plaintext PHI in the WC transport.
+        // Send session metadata so the Watch can restore its own authenticated session.
+        // WCSession is encrypted between the paired devices. We include non-sensitive
+        // fields (email, region) and the bearer token + userId so the watch app can
+        // perform API calls directly without requiring the iPhone to be present.
+        if let email = defaults.string(forKey: emailKey) {
+            context["email"] = email
+        }
+        if let region = defaults.string(forKey: regionKey) {
+            context["region"] = region
+        }
+        if let token = keychain.getString(forKey: KeychainStore.Keys.token) {
+            context["token"] = token
+        }
+        if let userId = keychain.getString(forKey: KeychainStore.Keys.userId) {
+            context["userId"] = userId
+        }
+        let expires = defaults.integer(forKey: tokenExpiresKey)
+        if expires > 0 {
+            context["tokenExpires"] = expires
+        }
 
         do {
             try WCSession.default.updateApplicationContext(context)
@@ -453,6 +469,16 @@ public class GlucoseStore: NSObject, ObservableObject {
             #if DEBUG
             print("Failed to update Apple Watch application context: \(error.localizedDescription)")
             #endif
+        }
+        // Also try immediate delivery if the session is reachable; otherwise enqueue background transfer.
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(context, replyHandler: nil) { error in
+                #if DEBUG
+                print("sendMessage to Watch failed: \(error.localizedDescription)")
+                #endif
+            }
+        } else {
+            WCSession.default.transferUserInfo(context)
         }
     }
     #endif
@@ -466,6 +492,18 @@ extension GlucoseStore: WCSessionDelegate {
         if activationState == .activated {
             Task { @MainActor in
                 self.syncToWatch()
+            }
+        }
+        #elseif os(watchOS)
+        if activationState == .activated {
+            // Apply any pre-existing context immediately
+            let ctx = session.receivedApplicationContext
+            if !ctx.isEmpty {
+                self.processReceivedData(ctx)
+            }
+            // If we still don't have an authenticated session, ask the phone to sync now.
+            if !self.isSessionActive && session.isReachable {
+                session.sendMessage(["request": "sync"], replyHandler: nil, errorHandler: nil)
             }
         }
         #endif
@@ -492,6 +530,17 @@ extension GlucoseStore: WCSessionDelegate {
             self.processReceivedData(userInfo)
         }
     }
+    
+    #if os(iOS)
+    public func session(_ session: WCSession, didReceiveMessage message: [String : Any], replyHandler: @escaping ([String : Any]) -> Void) {
+        if let request = message["request"] as? String, request == "sync" {
+            self.syncToWatch()
+            replyHandler(["status": "ok"])
+        } else {
+            replyHandler(["status": "ignored"])
+        }
+    }
+    #endif
     
     private func processReceivedData(_ data: [String: Any]) {
         var didChange = false
@@ -522,11 +571,25 @@ extension GlucoseStore: WCSessionDelegate {
             didChange = true
         }
         
-        // Credentials and the session token are NOT received via WCSession anymore.
-        // The watch reads them directly from the shared Keychain access group.
-        // If a fresh session was just established on iPhone, the watch picks it
-        // up on its next launch via loadLocalData().
         #if os(watchOS)
+        // Mirror non-sensitive metadata
+        if let email = data["email"] as? String {
+            defaults.set(email, forKey: emailKey)
+        }
+        if let region = data["region"] as? String {
+            defaults.set(region, forKey: regionKey)
+        }
+        // Persist sensitive session fields on the Watch's own Keychain
+        if let token = data["token"] as? String, !token.isEmpty {
+            keychain.setString(token, forKey: KeychainStore.Keys.token)
+        }
+        if let userId = data["userId"] as? String, !userId.isEmpty {
+            keychain.setString(userId, forKey: KeychainStore.Keys.userId)
+        }
+        if let expires = data["tokenExpires"] as? Int {
+            defaults.set(expires, forKey: tokenExpiresKey)
+        }
+        // Try to restore session if we now have everything needed.
         if !isSessionActive,
            let token = keychain.getString(forKey: KeychainStore.Keys.token),
            let userId = keychain.getString(forKey: KeychainStore.Keys.userId),
